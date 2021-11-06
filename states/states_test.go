@@ -21,11 +21,26 @@ func TestFromActiveToCreateTaskA(t *testing.T) {
 	}
 }
 
+// Transition from _active_ to _createTaskA_
+func TestFromActiveToCreateTaskA_Denied_Because_UserIsNotAdmin(t *testing.T) {
+	m := GetMachine(stateActive, USER_IS_NOT_ADMIN)
+
+	b, err := m.CanFire(triggerInitMaintenance)
+	if err != nil {
+		t.Errorf("Got unexpected error: %s", err)
+	}
+
+	if b {
+		t.Errorf("want:%v\ngot:%v", false, true)
+	}
+}
+
 // Transition from _createTaskA_ to _WaingForTaskACompleted_
 func TestFromCreateTaskAToWaitingForTaskACompleted(t *testing.T) {
 	m := machineAtCreateTaskA()
+	taskId := 42
 
-	err := m.Fire(triggerWaitingForTaskACompleted)
+	err := m.Fire(triggerWaitingForTaskACompleted, taskId)
 	if err != nil {
 		t.Errorf("Got unexpected error: %s", err)
 	}
@@ -36,12 +51,23 @@ func TestFromCreateTaskAToWaitingForTaskACompleted(t *testing.T) {
 	}
 }
 
+func TestCanFire_triggerWaitingForTaskACompleted_is_false(t *testing.T) {
+	m := machineAtActive()
+
+	b, err := m.CanFire(triggerWaitingForTaskACompleted)
+	if err != nil {
+		t.Errorf("Got unexpected error: %s", err)
+	}
+
+	if b {
+		t.Errorf("want:%v\ngot:%v", false, true)
+	}
+}
+
 func machineAtActive() *stateless.StateMachine {
-	return GetMachine()
+	return GetMachine(stateActive, USER_IS_ADMIN)
 }
 
 func machineAtCreateTaskA() *stateless.StateMachine {
-	m := machineAtActive()
-	m.Fire(triggerInitMaintenance)
-	return m
+	return GetMachine(stateCreateTaskA, USER_IS_ADMIN)
 }
